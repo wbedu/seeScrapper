@@ -12,11 +12,12 @@
 ```bash
 usage: scrapper.py [-h] -m MANGA [-t THREADS]
 
+required arguments:
+  -m MANGA, --manga MANGA
+                      The manga to be downloaded
+
 optional arguments:
   -h, --help            show this help message and exit
-  -m MANGA, --manga MANGA
-                        The manga to be downloaded
   -t THREADS, --threads THREADS
                         Number of threads to download with (Default 6)
-
 ```
