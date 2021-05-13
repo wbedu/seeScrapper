@@ -1,6 +1,7 @@
 #!env python3
 import os
 import errno
+import argparse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,11 +11,12 @@ from concurrent.futures import ThreadPoolExecutor
 from requests import get  # to make GET request
 PAGE_XPATH="//img[contains(@class,'img-fluid') and contains(@src,'https')]"
 NEXT_PAGE="/html/body/nav/div/div[3]/ul[2]/li[3]/a"
+BROWSER = None;
 
 def scrape_chapter():
     urls = []
     try:
-        pages = WebDriverWait(browser, 15).until(
+        pages = WebDriverWait(BROWSER, 15).until(
             EC.presence_of_all_elements_located(
                 (By.XPATH, PAGE_XPATH)
             )
@@ -24,7 +26,7 @@ def scrape_chapter():
 
     except:
         pass
-    return browser.find_elements_by_xpath(NEXT_PAGE), urls
+    return BROWSER.find_elements_by_xpath(NEXT_PAGE), urls
 
 
 def make_dir(dir):
@@ -44,38 +46,46 @@ def download(url, dir):
         # write to file
         file.write(response.content)
 
-browser = webdriver.Firefox()
 
-SeriesTitle = "Solo Leveling"
-# url_title=SeriesTitle.replace(" ", "%%20")
-browser.get(f"https://mangasee123.com/search/?name={SeriesTitle}")
-browser.add_cookie({"name" : "FullPage", "value" : "yes"})
-Series = browser.find_element_by_class_name('SeriesName')
+if __name__ == "__main__" :
+    parser = argparse.ArgumentParser(conflict_handler="resolve")
+    parser.add_argument("-m", "--manga",
+        help="The manga to be downloaded",
+        required=True)
 
-Series.click()
+    args = parser.parse_args()
 
-chapters = browser.find_elements_by_xpath("//a[contains(@class,'ChapterLink')]")
+    BROWSER = webdriver.Firefox()
 
-chapters[-1].click()
-next_chapter, urls = scrape_chapter()
+    SeriesTitle = "Escape Room"
+    BROWSER.get(f"https://mangasee123.com/search/?name={SeriesTitle}")
+    BROWSER.add_cookie({"name" : "FullPage", "value" : "yes"})
+    Series = BROWSER.find_element_by_class_name('SeriesName')
 
-series_dir= os.path.join(".","data",SeriesTitle)
-make_dir(SeriesTitle)
+    Series.click()
 
-while len(next_chapter) >0:
-    chapter_num = urls[0].split("/")[-1].split("-")[0]
-    chapter_dir = os.path.join(series_dir, chapter_num)
-    make_dir(chapter_dir)
+    chapters = BROWSER.find_elements_by_xpath("//a[contains(@class,'ChapterLink')]")
 
-    with ThreadPoolExecutor(max_workers=5) as exe:
-        for url in urls:
-        exe.submit(download, url, chapter_dir)
-
-    download(url, chapter_dir)
-    next_chapter[0].click()
+    chapters[-1].click()
     next_chapter, urls = scrape_chapter()
 
-browser.close()
+    data_path = os.path.join(".","data")
+    make_dir(data_path)
 
+    series_dir= os.path.join(".","data",SeriesTitle)
+    make_dir(SeriesTitle)
 
-# if __name__ == __main__ :
+    while len(next_chapter) >0:
+        chapter_num = urls[0].split("/")[-1].split("-")[0]
+        chapter_dir = os.path.join(series_dir, chapter_num)
+        make_dir(chapter_dir)
+
+        with ThreadPoolExecutor(max_workers=5) as exe:
+            for url in urls:
+                exe.submit(download, url, chapter_dir)
+
+        download(url, chapter_dir)
+        next_chapter[0].click()
+        next_chapter, urls = scrape_chapter()
+
+    BROWSER.close()
