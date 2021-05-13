@@ -52,12 +52,15 @@ if __name__ == "__main__" :
     parser.add_argument("-m", "--manga",
         help="The manga to be downloaded",
         required=True)
-
+    parser.add_argument("-t", "--threads",
+        help="Number of threads to download with (Default 6)",
+        default=6,
+        required=False)
     args = parser.parse_args()
-
+    threads = int(args.threads)
     BROWSER = webdriver.Firefox()
 
-    SeriesTitle = "Escape Room"
+    SeriesTitle = args.manga
     BROWSER.get(f"https://mangasee123.com/search/?name={SeriesTitle}")
     BROWSER.add_cookie({"name" : "FullPage", "value" : "yes"})
     Series = BROWSER.find_element_by_class_name('SeriesName')
@@ -80,7 +83,7 @@ if __name__ == "__main__" :
         chapter_dir = os.path.join(series_dir, chapter_num)
         make_dir(chapter_dir)
 
-        with ThreadPoolExecutor(max_workers=5) as exe:
+        with ThreadPoolExecutor(max_workers=threads) as exe:
             for url in urls:
                 exe.submit(download, url, chapter_dir)
 
